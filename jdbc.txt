@@ -1,0 +1,287 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package Database;
+import Account.*;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+/**
+ *
+ * @author sijo
+ */
+public class JDBCLayer {
+     //for mis mySQL DB server    
+    final String DATABASE_URL = "jdbc:mysql://mis-sql.uhcl.edu:3306/joses1277";    
+    final String username = "joses1277";    
+    final String pwd = "0391668";
+    
+    public void loadMySQLDriver(){
+        try{
+            //com.mysql.cj.jdbc.Driver
+           // Class.forName("com.mysql.jdbc.Driver");
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            System.out.println("MySQL Driver is OK!");
+        }catch(ClassNotFoundException e){
+            e.printStackTrace();
+        }
+    }
+    
+    public String saveUser(TwitterAccount p){
+        loadMySQLDriver();
+        String errMsg="";
+        
+        String insertQuery = constructInsertUserQuery(p);
+        try{
+            Connection c = DriverManager.getConnection(DATABASE_URL, username, pwd);
+            Statement s = c.createStatement();
+            s.executeUpdate(insertQuery);
+        }
+        catch(SQLException e){
+            errMsg = e.getMessage();
+        }       
+        
+        return errMsg;
+        
+    }
+    
+    public boolean login(TwitterAccount p){
+        boolean result = false;
+        String errMsg = "";
+        String selectUserQuery = constructSelectUserQuery(p);
+         try{
+            Connection c = DriverManager.getConnection(DATABASE_URL, username, pwd);
+            Statement s = c.createStatement();
+            ResultSet rs = s.executeQuery(selectUserQuery);
+            while (rs.next()) 
+            {
+                //whenever you enter this while loop, that means your database returns you a record
+                //your login is success
+                result = true;
+                p.accountID = rs.getInt("PersonID");
+                p.lastname = rs.getString("LastName");
+                p.firstname = rs.getString("FirstName");
+                p.username = rs.getString("Email");
+             //   java.sql.Date sqlBirthday = rs.getDate("Birthday");
+               // p.birthday = new java.util.Date(sqlBirthday.getTime());
+                p.employer = rs.getString("Employer");
+                p.city = rs.getString("City");
+                p.state = rs.getString("State");
+                p.country = rs.getString("Country");
+                p.password = rs.getString("Password");
+            }
+        }
+        catch(SQLException e){
+            errMsg = e.getMessage();
+        }       
+        
+        if(!errMsg.equals(""))
+            System.out.println(errMsg);
+        
+        return result;
+    }
+    
+    
+    
+    public String constructSelectUserQuery(TwitterAccount p){
+       // java.sql.Date birthday = new java.sql.Date(p.birthday.getTime());
+        
+        String query = "";
+        query +="SELECT * from persons_0000 ";
+        query += "WHERE email = '" + p.username;
+        query += "' AND password ='" +p.password;
+        query += "';";  
+        
+        return query;
+    }
+    
+    public boolean resetPassword(String email, String password){
+        boolean success = true;
+        String updateQry = udpateUser(email, password);
+        try{
+            Connection c = DriverManager.getConnection(DATABASE_URL, username, pwd);
+            Statement s = c.createStatement();
+            s.execute(updateQry);
+        }
+        catch(SQLException e){
+            System.out.println("Error in update");
+            success = false;
+        }       
+        
+        return success;
+    }    
+    
+    
+    public String udpateUser(String email, String password){
+       // java.sql.Date birthday = new java.sql.Date(p.birthday.getTime());
+        
+        String query = "";
+        query +="UPDATE persons_0000 ";
+        query +="SET password ='" + password;
+        query +="'";
+        query += "WHERE email = '" + email;
+            query += "';";  
+        
+        return query;
+    }    
+    
+
+
+    public String constructSelectItemQuery(int accountID){
+       // java.sql.Date birthday = new java.sql.Date(p.birthday.getTime());
+        
+        String query = "";
+        query +="SELECT * from item_0000 ";
+        query += "WHERE personID = '" + accountID;
+        query += "';";  
+        
+        return query;
+    }
+    
+    public String constructInsertUserQuery(TwitterAccount p){
+        java.sql.Date birthday = new java.sql.Date(p.birthday.getTime());
+        
+        String insertQuery = "";
+        insertQuery +="INSERT INTO persons_0000( LastName, FirstName, Email, Birthday, Employer, City, State, Password, Country)";
+        insertQuery += "VALUES( '" + p.lastname;
+        insertQuery += "','" +p.firstname;
+        insertQuery += "','" +p.username;
+        insertQuery += "','" + birthday;
+        insertQuery += "','" +p.employer;
+        insertQuery += "','" +p.city;
+        insertQuery += "','" +p.state;
+        insertQuery += "','" +p.password;
+        insertQuery += "','" +p.country + "');";
+        
+        return insertQuery;
+    }
+    
+     public void saveTwitterItem(Item twitterItem, int accountID){
+        //support postItem
+        loadMySQLDriver();
+        String errMsg="";
+        
+        String insertQuery = constructInsertItemQuery(twitterItem, accountID);
+        try{
+            Connection c = DriverManager.getConnection(DATABASE_URL, username, pwd);
+            Statement s = c.createStatement();
+            s.executeUpdate(insertQuery);
+        }
+        catch(SQLException e){
+            errMsg = e.getMessage();
+            System.err.println(errMsg);
+        }       
+        
+        return;
+    }
+    
+     public String constructInsertItemQuery(Item i, int accountID){
+        java.sql.Date itemDate = new java.sql.Date(i.itemDate.getTime());
+        String accountIDString = "";
+        for(Account a:i.accountLikesThisItem){
+            accountIDString  += a.accountID + a.username +";";
+        }
+        
+        String insertQuery = "";
+        insertQuery +="INSERT INTO item_0000( itemText, likeIDs, postDate, personID)";
+        insertQuery += "VALUES( '" + i.itemText;
+        insertQuery += "','" +accountIDString; 
+        insertQuery += "','" +itemDate; 
+        insertQuery += "','" +accountID + "');";
+        
+        return insertQuery;
+    }
+     
+     public ArrayList<Item> loadItems(int accountID){
+         ArrayList<Item> itemList = new ArrayList<>();
+         String errMsg = "";
+        String selectUserQuery = constructSelectItemQuery(accountID);
+         try{
+            Connection c = DriverManager.getConnection(DATABASE_URL, username, pwd);
+            Statement s = c.createStatement();
+            ResultSet rs = s.executeQuery(selectUserQuery);
+            while (rs.next()) 
+            {
+                //whenever you enter this while loop, that means your database returns you a list of records
+                //your login is success               
+                
+                int itemID = rs.getInt("PersonID");
+                String itemText = rs.getString("itemText");
+                java.sql.Date itemDate = rs.getDate("postDate");
+                Item itemRecord = new Item(itemID, itemDate, itemText);
+                itemList.add(itemRecord);
+            }
+        }
+        catch(SQLException e){
+            errMsg = e.getMessage();
+        }       
+        
+        if(!errMsg.equals(""))
+            System.out.println(errMsg);
+         
+         return itemList;
+     }
+     
+     
+     public ArrayList<Item> searchItem(String searchString){
+         //SELECT * FROM `item_0000` WHERE itemText like "%chad%"
+         String searchQueryString = "SELECT * FROM `item_0000` WHERE itemText like \"% " + searchString + "%\" ";
+         ArrayList<Item> results = new ArrayList<>();
+        String errMsg = "";
+     
+         try{
+            Connection c = DriverManager.getConnection(DATABASE_URL, username, pwd);
+            Statement s = c.createStatement();
+            ResultSet rs = s.executeQuery(searchQueryString);
+            while (rs.next())
+            {
+                int itemID = rs.getInt("ItemID");
+                java.sql.Date itemDate = rs.getDate("postDate");
+                String itemText = rs.getString("itemText");
+                Item i = new Item( itemID,  itemDate,  itemText);
+                results.add(i);            
+            }
+        }
+        catch(SQLException e){
+            errMsg = e.getMessage();
+        }      
+       
+        if(!errMsg.equals(""))
+            System.out.println(errMsg);
+       
+        return results;
+         
+     }
+   
+     public void userSearch(String fname){
+         //ArrayList<String> userList= new ArrayList<>();
+         try{
+            Connection c = DriverManager.getConnection(DATABASE_URL, username, pwd);
+            Statement s = c.createStatement();
+            String sql = "select * from persons_0000 where Firstname = '" + fname + "' or LastName = '" + fname + "'";
+            ResultSet rs = s.executeQuery(sql);
+            boolean noResult = true;
+            while (rs.next()) 
+            {
+                noResult = false;
+                
+                //userList.add(rs.getString(3));
+                System.out.println("First name: "+ rs.getString(3) + ", " + "Last name: "+
+                        rs.getString(2) + ", "+ "Email: " +rs.getString(4));
+            }
+            if(noResult)
+                System.err.println("No result is found!");
+        }
+        catch(SQLException e){
+            e.getMessage();
+        }   
+     }
+    
+}

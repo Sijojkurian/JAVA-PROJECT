@@ -1,0 +1,356 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package groupprojecttemplate;
+
+import Account.*;
+import Database.JDBCLayer;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Scanner;
+import java.util.regex.Pattern;
+
+/**
+ *
+ * @author SUN NANFEl
+ */
+public class TwitterServer {
+    Scanner s;
+    int userOption;
+    TwitterAccount currentAccount;
+    JDBCLayer jDBCLayer= new JDBCLayer();
+    
+
+    public TwitterServer() {
+        s = new Scanner(System.in);
+        currentAccount = new TwitterAccount();
+        currentAccount.accountID = -1;
+    }
+    
+    
+    public void run(){
+         // TODO code application logic here
+        System.out.println("Welcome to Twitter! What you want to do? Please select from the following options. Type in the numbers that you choose.");
+        ArrayList optionList = new ArrayList<>();
+        optionList.add(new UserOption(1,"Login"));
+        optionList.add(new UserOption(2,"Register"));
+        optionList.add(new UserOption(3,"Search for User"));
+        optionList.add(new UserOption(4,"Search for post"));
+        optionList.add(new UserOption(5,"Quit"));
+        
+        userOption = this.getUserOption(optionList);
+        
+            if(userOption == 5)
+            {
+                System.out.println("Goodbye!");
+            }
+            else if(userOption == 1){
+                login();                
+            }
+            else if(userOption == 2){
+                register();                
+            }
+              else if(userOption == 3){
+                searchUser();                
+            } 
+             else if(userOption == 4){
+               searchPost();                
+            }
+    }
+    
+    public void login(){
+        
+        boolean loginSuccessfully = false;
+        int failedCounter = 2;
+        
+        while(failedCounter<3){
+            System.out.println("Please Type in your username");
+            currentAccount.username = s.next();
+            System.out.println("Please Type in your password");
+            currentAccount.password = s.next();
+            loginSuccessfully = this.currentAccount.login();
+            //write a function to check if user exists and password matches
+
+            if(!loginSuccessfully && failedCounter<3){
+                
+                failedCounter++;
+                continue;
+                
+            }
+            else{
+                //login success
+                break;
+            }
+        }//close while loop
+        if(!loginSuccessfully){
+            
+            System.out.println("Sorry, your username or password was incorrec. Please select one of the following option.");
+            ArrayList optionList = new ArrayList<>();
+            optionList.add(new UserOption(1,"Try again"));
+            optionList.add(new UserOption(2,"Sign up"));
+            optionList.add(new UserOption(3,"Quit"));
+            
+            userOption = this.getUserOption(optionList);
+
+            if(userOption == 1)
+                login();
+            else if(userOption == 2)
+                register();
+            else if(userOption == 3)
+                run();
+            
+            else
+                goToHomePage();
+        }
+        else {
+            goToHomePage();
+        }  
+    }
+    
+    public int getUserOption(ArrayList<UserOption> optionList){
+        while(true){
+            for(UserOption uo : optionList){
+                uo.display();
+            }
+            int result = s.nextInt();
+            if(result<= 0 || result>optionList.size()){
+                System.out.println("You must choose option from 0 to " + optionList.size());
+            }
+            else
+                return result;
+        }
+        
+    }
+    
+    public void goToHomePage(){
+        this.currentAccount.Display();
+        System.out.println("HOMEPAGE is loaded");
+        this.currentAccount.Display();
+        
+            System.out.println("What you want to do?");
+            ArrayList optionList = new ArrayList<>();
+            optionList.add(new UserOption(1,"Post a new item"));
+            optionList.add(new UserOption(2,"Edit my profile")); // bonus development
+            optionList.add(new UserOption(3,"View all my followed users' items")); 
+            optionList.add(new UserOption(4,"Search for a user")); 
+            optionList.add(new UserOption(5,"Search for a post"));
+            optionList.add(new UserOption(6,"Sign Out"));
+               
+            userOption = this.getUserOption(optionList);
+            
+            if(userOption == 1){
+                postNewItem();
+            }               
+            else if(userOption == 2){
+                editMyProfile();
+            }
+            else if(userOption == 3){
+                editMyProfile();
+            }
+            else if(userOption == 4){
+                searchUser();
+            }
+            else if(userOption == 5){
+                searchPost();
+               
+            }
+            else if(userOption == 6){
+                run();
+               
+            }
+           
+            else{
+                // System.exit(0);
+                return;
+            }           
+ 
+    }
+    
+    public void postNewItem(){
+        this.currentAccount.PostTextOnly(""); 
+        this.currentAccount.Display();
+    }
+    
+     public void editMyProfile(){
+        
+    }
+     
+    
+    
+    public void goToAdminPage(){
+        System.out.println("Welcome to admin page");
+    
+            ArrayList optionList = new ArrayList<>();
+            optionList.add(new UserOption(1,"Display all users"));
+            optionList.add(new UserOption(2,"Search for a user")); // bonus development
+            optionList.add(new UserOption(3,"Search for a post item")); 
+            optionList.add(new UserOption(4,"Search for a user or post")); 
+            optionList.add(new UserOption(5,"Quit"));
+        
+    }
+    
+   
+    private Date getValidDate(String dateStr){    
+        Date date = null;
+        try {
+            date = new SimpleDateFormat("MM/dd/yyyy").parse(dateStr);
+        } catch (Exception ex) {
+            System.out.println("Invalid Date.");
+        }
+        return date;
+    }
+    
+    private Date getValidDOB(){
+        System.out.println("Please Enter Birthday(MM/DD/YYYY)");
+        String dobStr = s.next();
+        return getValidDate(dobStr);
+    }
+    
+    public static boolean isValidEmail(String email) 
+    { 
+        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\."+ 
+                            "[a-zA-Z0-9_+&*-]+)*@" + 
+                            "(?:[a-zA-Z0-9-]+\\.)+[a-z" + 
+                            "A-Z]{2,7}$"; 
+                              
+        Pattern pat = Pattern.compile(emailRegex); 
+        if (email == null) 
+            return false; 
+        return pat.matcher(email).matches(); 
+    } 
+    
+    private String getValidUserName(){
+        System.out.println("Please Enter UserName(Email)");
+        String emailStr = s.next();
+        if (isValidEmail(emailStr)){
+            return emailStr;
+        }
+        else{
+            System.out.println("UserName is invalid");
+            return null;
+        }
+    }
+
+
+    
+    public void register(){
+        try{
+            System.out.println("Welcome to registration page");
+            while(true){
+                  String emailStr = getValidUserName();
+                  if (emailStr!=null){
+                      this.currentAccount.username = emailStr;
+                      break;
+                  }
+              }
+
+            
+            System.out.println("Please Type in your firstname");
+            this.currentAccount.firstname = s.next();
+
+            System.out.println("Please Type in your lastname");
+            this.currentAccount.lastname = s.next();
+            
+            while(true){
+                Date dobDate = getValidDOB();
+                if (dobDate!=null){
+                    this.currentAccount.birthday = dobDate;
+                    break;
+                }
+            }
+
+            System.out.println("Please Type in your Employer");
+            this.currentAccount.employer = s.next();
+
+            System.out.println("Please Type in your City");
+            this.currentAccount.city = s.next();
+
+            System.out.println("Please Type in your State");
+            this.currentAccount.state = s.next();
+
+            System.out.println("Please Type in your Country");
+            this.currentAccount.country = s.next();
+        
+            System.out.println("Please Type in your Password");
+            this.currentAccount.password = s.next();
+
+            this.currentAccount.saveProfile();
+        }
+        catch(Exception e){
+            System.err.println(e.getMessage());
+        }
+        System.out.print("Congratulation! User " + this.currentAccount.username + " is registered successfully!");
+        this.goToHomePage();
+        
+    }
+    
+    public void searchUser(){
+
+        System.out.println("Search user by name");
+        String fname=s.next();
+        jDBCLayer.userSearch(fname);
+   
+        
+        System.out.println("What you want to do?");
+            ArrayList optionList = new ArrayList<>();
+            optionList.add(new UserOption(1,"Go back to home page"));
+            optionList.add(new UserOption(2,"Search another user")); // bonus development 
+            optionList.add(new UserOption(3,"Quit"));
+            userOption = this.getUserOption(optionList);
+            if(userOption==1) 
+                this.goToHomePage();
+            else if(userOption==2)
+                this.searchUser();
+            else
+                System.exit(0);
+       
+    }
+    
+    public void searchPost(){
+        // Boolean flag = true;
+         while(true){
+            System.out.println("What you want search for?");
+            String searchString = s.next();
+           JDBCLayer myJDBCLayer = new JDBCLayer();
+           String searchItem;
+          ArrayList<Item> results = myJDBCLayer.searchItem(searchString);
+          if(results.size()<=0){
+              System.out.println("Sorry, not result found!");
+          }
+          else{
+              System.out.println("//////////Search results/////////////////////");
+              for(Item i:results){
+                  i.Display();
+              }
+          }
+           System.out.println("What you want to do?");
+            ArrayList optionList = new ArrayList<>();
+            optionList.add(new UserOption(1,"Go back to home page"));
+            optionList.add(new UserOption(2,"Search another post")); // bonus development 
+            optionList.add(new UserOption(3,"Quit"));
+            userOption = this.getUserOption(optionList);
+            
+            if(userOption==1) 
+                this.goToHomePage();
+            else if(userOption==2)
+                this.searchPost();
+            else
+                System.exit(0);
+         }
+       
+       
+    }
+    
+    public void resetPwd(){
+   
+    
+        System.out.println("Please Enter your Password");
+        this.currentAccount.password = s.next();
+        
+        this.currentAccount.resetPassword();       
+    }
+    
+}
